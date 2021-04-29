@@ -98,8 +98,8 @@ module.exports = {
   }
 };
 
-// PancakeRouter  │ '0xc49A57b2f04Ad3E7d4CB4a1828C5665a21633f68' │
-// │ PancakeMigrator │ '0x483026A8600a3DAb3BAA2c03D7Bf1A01C91895b1' │
-// │   Migrations    │ '0x1d1966436E6773A087d008F96da16D8566239513' │
-// │      WETH       │ '0xe1AFFF3f70d7B011187819f7996ba0367E262eAa' │
-// │      WBNB       │ '0x42a29012e6EBA9A5F84Ad3BBa11eE8b6a8cB41E9'
+// PancakeRouter  │ '0x0fe3e905ECD3d11DED8fC1F26255b792Df454a3E' │
+// │ PancakeMigrator │ '0x3571612Ab2a7fEbEBd5624f6D96a3D8DCD53fe7b' │
+// │   Migrations    │ '0xd03F443BAf430f551EC216Dcbe56F596435b27cb' │
+// │      WETH       │ '0x8E9C69de0f5c6Aa317e9cE37D72Fe1d485B72345' │
+// │      WBNB       │ '0x5920a680241fD8942073fF74eBab3D1856E9E64A'

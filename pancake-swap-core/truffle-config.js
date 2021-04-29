@@ -105,3 +105,4 @@ module.exports = {
 // │  PancakeERC20  │ '0x8e7034EAd59D425D22Fb7B15E278e1947f7441e4' │
 // │     token1     │ '0x806dbf0f0f54cBcA931DfEE2a7355B56c8BC4B8B' │
 // │     token2     │ '0xff5134A67F0cB601eE00F2F5c87798889b657339'
+//hash 0x7c534bdae8f9a25b7be22c0dec1218a8e1f9f36a65d478ef2af491fbaeeafe4f
