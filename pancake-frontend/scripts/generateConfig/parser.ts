@@ -26,7 +26,7 @@ export const getIfos = (data) => {
   })
   return ifos
 }
-//F:\pancakeswap\pancake-frontend\scripts\generateConfig\parser.ts
+
 export const getPools = (data) => {
   const pools: PoolConfig = data.map((pool) => {
     return {

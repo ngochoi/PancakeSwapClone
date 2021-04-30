@@ -9,9 +9,10 @@ import Nfts from 'config/constants/nfts'
 import { getWeb3NoAccount } from 'utils/web3'
 import { getAddress } from 'utils/addressHelpers'
 import { getBalanceNumber } from 'utils/formatBalance'
+import { BIG_ZERO } from 'utils/bigNumber'
 import useRefresh from 'hooks/useRefresh'
 import { fetchFarmsPublicDataAsync, fetchPoolsPublicDataAsync, fetchPoolsUserDataAsync, setBlock } from './actions'
-import { State, Farm, Pool, ProfileState, TeamsState, AchievementState, PriceState, FarmsState, Bet } from './types'
+import { State, Farm, Pool, ProfileState, TeamsState, AchievementState, PriceState, FarmsState } from './types'
 import { fetchProfile } from './profile'
 import { fetchTeam, fetchTeams } from './teams'
 import { fetchAchievements } from './achievements'
@@ -58,10 +59,10 @@ export const useFarmUser = (pid) => {
   const farm = useFarmFromPid(pid)
 
   return {
-    allowance: farm.userData ? new BigNumber(farm.userData.allowance) : new BigNumber(0),
-    tokenBalance: farm.userData ? new BigNumber(farm.userData.tokenBalance) : new BigNumber(0),
-    stakedBalance: farm.userData ? new BigNumber(farm.userData.stakedBalance) : new BigNumber(0),
-    earnings: farm.userData ? new BigNumber(farm.userData.earnings) : new BigNumber(0),
+    allowance: farm.userData ? new BigNumber(farm.userData.allowance) : BIG_ZERO,
+    tokenBalance: farm.userData ? new BigNumber(farm.userData.tokenBalance) : BIG_ZERO,
+    stakedBalance: farm.userData ? new BigNumber(farm.userData.stakedBalance) : BIG_ZERO,
+    earnings: farm.userData ? new BigNumber(farm.userData.earnings) : BIG_ZERO,
   }
 }
 
@@ -71,7 +72,7 @@ export const useLpTokenPrice = (symbol: string) => {
 
   return farm.lpTotalSupply && farm.lpTotalInQuoteToken
     ? new BigNumber(getBalanceNumber(farm.lpTotalSupply)).div(farm.lpTotalInQuoteToken).times(tokenPriceInUsd).times(2)
-    : new BigNumber(0)
+    : BIG_ZERO
 }
 
 // Pools
@@ -177,13 +178,16 @@ export const useGetApiPrice = (address: string) => {
   return prices[address.toLowerCase()]
 }
 
-export const usePriceCakeBusd = (): BigNumber => {
-  const ZERO = new BigNumber(0)
-  const cakeBnbFarm = useFarmFromPid(1)
+export const usePriceBnbBusd = (): BigNumber => {
   const bnbBusdFarm = useFarmFromPid(2)
+  return bnbBusdFarm.tokenPriceVsQuote ? new BigNumber(1).div(bnbBusdFarm.tokenPriceVsQuote) : BIG_ZERO
+}
 
-  const bnbBusdPrice = bnbBusdFarm.tokenPriceVsQuote ? new BigNumber(1).div(bnbBusdFarm.tokenPriceVsQuote) : ZERO
-  const cakeBusdPrice = cakeBnbFarm.tokenPriceVsQuote ? bnbBusdPrice.times(cakeBnbFarm.tokenPriceVsQuote) : ZERO
+export const usePriceCakeBusd = (): BigNumber => {
+  const cakeBnbFarm = useFarmFromPid(1)
+  const bnbBusdPrice = usePriceBnbBusd()
+
+  const cakeBusdPrice = cakeBnbFarm.tokenPriceVsQuote ? bnbBusdPrice.times(cakeBnbFarm.tokenPriceVsQuote) : BIG_ZERO
 
   return cakeBusdPrice
 }
@@ -261,16 +265,6 @@ export const useGetMinBetAmount = () => {
   return useMemo(() => new BigNumber(minBetAmount), [minBetAmount])
 }
 
-export const useGetUserBetByRound = (id: string, account: string): Bet => {
-  const round = useGetRound(id)
-
-  if (!account) {
-    return undefined
-  }
-
-  return round.bets.find((bet) => bet.user.address.toLowerCase() === account.toLocaleLowerCase())
-}
-
 export const useGetIsFetchingHistory = () => {
   return useSelector((state: State) => state.predictions.isFetchingHistory)
 }
@@ -282,6 +276,20 @@ export const useGetHistory = () => {
 export const useGetHistoryByAccount = (account: string) => {
   const bets = useGetHistory()
   return bets ? bets[account] : []
+}
+
+export const useGetBetByRoundId = (account: string, roundId: string) => {
+  const bets = useSelector((state: State) => state.predictions.bets)
+
+  if (!bets[account]) {
+    return null
+  }
+
+  if (!bets[account][roundId]) {
+    return null
+  }
+
+  return bets[account][roundId]
 }
 
 // Collectibles

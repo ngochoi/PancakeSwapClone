@@ -1,10 +1,22 @@
 import React, { useState } from 'react'
-import { CardBody, PlayCircleOutlineIcon, Button } from '@pancakeswap-libs/uikit'
+import BigNumber from 'bignumber.js'
+import { useWeb3React } from '@web3-react/core'
+import {
+  CardBody,
+  PlayCircleOutlineIcon,
+  Button,
+  useTooltip,
+  ArrowUpIcon,
+  ArrowDownIcon,
+} from '@pancakeswap-libs/uikit'
 import useI18n from 'hooks/useI18n'
+import { useAppDispatch } from 'state'
 import { BetPosition, Round } from 'state/types'
-import { useGetTotalIntervalBlocks } from 'state/hooks'
+import { useBlock, useGetIntervalBlocks } from 'state/hooks'
+import { markPositionAsEntered } from 'state/predictions'
 import useToast from 'hooks/useToast'
 import CardFlip from '../CardFlip'
+import { formatBnb, getBnbAmount } from '../../helpers'
 import { RoundResultBox, PrizePoolRow } from '../RoundResult'
 import MultiplierArrow from './MultiplierArrow'
 import Card from './Card'
@@ -23,7 +35,6 @@ interface OpenRoundCardProps {
 interface State {
   isSettingPosition: boolean
   position: BetPosition
-  hasEnteredPosition: boolean
 }
 
 const OpenRoundCard: React.FC<OpenRoundCardProps> = ({
@@ -34,24 +45,42 @@ const OpenRoundCard: React.FC<OpenRoundCardProps> = ({
   bullMultiplier,
   bearMultiplier,
 }) => {
-  const canEnterPosition = round.lockPrice === null && !hasEnteredUp && !hasEnteredDown
   const [state, setState] = useState<State>({
     isSettingPosition: false,
     position: BetPosition.BULL,
-
-    // We keep this flag in state because it is possible despite polling for new round data
-    // after a user enters a position it returns without the position data. So we want
-    // to be able to update it immediately
-    hasEnteredPosition: false,
   })
   const TranslateString = useI18n()
-  const interval = useGetTotalIntervalBlocks()
+  const interval = useGetIntervalBlocks()
   const { toastSuccess } = useToast()
-  const { isSettingPosition, position, hasEnteredPosition } = state
+  const { account } = useWeb3React()
+  const dispatch = useAppDispatch()
+  const { currentBlock } = useBlock()
+  const { isSettingPosition, position } = state
+  const isBufferPhase = currentBlock >= round.startBlock + interval
+  const positionDisplay = position === BetPosition.BULL ? 'UP' : 'DOWN'
+  const { targetRef, tooltipVisible, tooltip } = useTooltip(
+    <div style={{ whiteSpace: 'nowrap' }}>{`${formatBnb(betAmount)} BNB`}</div>,
+    'top',
+    'hover',
+  )
 
-  // Bettable rounds do not have an endblock set so we approximate it by adding the block interval
+  // Bettable rounds do not have an lockBlock set so we approximate it by adding the block interval
   // to the start block
-  const endBlock = round.startBlock + interval
+  const estimatedLockBlock = round.startBlock + interval
+
+  const getCanEnterPosition = () => {
+    if (hasEnteredUp || hasEnteredDown) {
+      return false
+    }
+
+    if (round.lockPrice !== null) {
+      return false
+    }
+
+    return true
+  }
+
+  const canEnterPosition = getCanEnterPosition()
 
   const handleBack = () =>
     setState((prevState) => ({
@@ -74,13 +103,19 @@ const OpenRoundCard: React.FC<OpenRoundCardProps> = ({
     }))
   }
 
-  const handleSuccess = async () => {
-    const positionDisplay = position === BetPosition.BULL ? 'UP' : 'DOWN'
-
-    setState((prevState) => ({
-      ...prevState,
-      hasEnteredPosition: true,
-    }))
+  const handleSuccess = async (decimalValue: BigNumber, hash: string) => {
+    // Optimistically set the user bet so we see the entered position immediately.
+    dispatch(
+      markPositionAsEntered({
+        account,
+        roundId: round.id,
+        partialBet: {
+          hash,
+          position,
+          amount: getBnbAmount(decimalValue).toNumber(),
+        },
+      }),
+    )
 
     handleBack()
 
@@ -92,20 +127,24 @@ const OpenRoundCard: React.FC<OpenRoundCardProps> = ({
     )
   }
 
+  const getPositionEnteredIcon = () => {
+    return position === BetPosition.BULL ? <ArrowUpIcon color="currentColor" /> : <ArrowDownIcon color="currentColor" />
+  }
+
   return (
     <CardFlip isFlipped={isSettingPosition} height="404px">
       <Card>
         <CardHeader
           status="next"
           epoch={round.epoch}
-          blockNumber={endBlock}
+          blockNumber={estimatedLockBlock}
           icon={<PlayCircleOutlineIcon color="white" mr="4px" width="21px" />}
           title={TranslateString(999, 'Next')}
         />
         <CardBody p="16px">
           <MultiplierArrow amount={betAmount} multiplier={bullMultiplier} hasEntered={hasEnteredUp} />
           <RoundResultBox isNext={canEnterPosition} isLive={!canEnterPosition}>
-            {canEnterPosition && !hasEnteredPosition ? (
+            {canEnterPosition ? (
               <>
                 <PrizePoolRow totalAmount={round.totalAmount} mb="8px" />
                 <Button
@@ -113,7 +152,7 @@ const OpenRoundCard: React.FC<OpenRoundCardProps> = ({
                   width="100%"
                   onClick={() => handleSetPosition(BetPosition.BULL)}
                   mb="4px"
-                  disabled={!canEnterPosition}
+                  disabled={!canEnterPosition || isBufferPhase}
                 >
                   {TranslateString(999, 'Enter UP')}
                 </Button>
@@ -121,17 +160,20 @@ const OpenRoundCard: React.FC<OpenRoundCardProps> = ({
                   variant="danger"
                   width="100%"
                   onClick={() => handleSetPosition(BetPosition.BEAR)}
-                  disabled={!canEnterPosition}
+                  disabled={!canEnterPosition || isBufferPhase}
                 >
                   {TranslateString(999, 'Enter DOWN')}
                 </Button>
               </>
             ) : (
               <>
-                <Button disabled startIcon={<PlayCircleOutlineIcon color="currentColor" />} width="100%" mb="8px">
-                  {TranslateString(999, 'Position Entered')}
-                </Button>
+                <div ref={targetRef}>
+                  <Button disabled startIcon={getPositionEnteredIcon()} width="100%" mb="8px">
+                    {TranslateString(999, `${positionDisplay} Entered`, { position: positionDisplay })}
+                  </Button>
+                </div>
                 <PrizePoolRow totalAmount={round.totalAmount} />
+                {tooltipVisible && tooltip}
               </>
             )}
           </RoundResultBox>
