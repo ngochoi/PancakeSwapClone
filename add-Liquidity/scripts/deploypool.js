@@ -3,13 +3,13 @@ const Router = artifacts.require('Router.sol');
 const Pair = artifacts.require('Pair.sol');
 const Token1 = artifacts.require('Token1.sol');
 const Token2 = artifacts.require('Token2.sol');
-//const web3 = require('Web3');
+const Web3 = require('web3');
 
 module.exports = async done => {
   try {
     const [admin, _] = await web3.eth.getAccounts();
-    const factory = await Factory.at('0xA498C874AB5E98D3103a9218f19Fde7bb15F80b8');
-    const router = await Router.at('0x0fe3e905ECD3d11DED8fC1F26255b792Df454a3E');
+    const factory = await Factory.at('0x72838b98b982DB67CF73F24E8554B3E506649Ba4');
+    const router = await Router.at('0xa7E1af76be5dFDd336e9be174A99a9a24b4eFA8D');
     const token1 = await Token1.new();
     const token2 = await Token2.new();
     const pairAddress = await factory.createPair.call(token1.address, token2.address);

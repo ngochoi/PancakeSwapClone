@@ -1,4 +1,3 @@
-
 pragma solidity >=0.6.0;
 
 // helper methods for interacting with ERC20 tokens and sending ETH that do not consistently return true/false
@@ -269,7 +268,7 @@ library PancakeLibrary {
                 hex'ff',
                 factory,
                 keccak256(abi.encodePacked(token0, token1)),
-                hex'00fb7f630766e6a796048ea87d01acd3068e8ff67d078148a3fa3f4a84f69bd5' // init code hash
+                hex'4abc347b2386f88a52a03841f18153db5becd8847798458118e0a64d8ad9e359' // init code hash
             ))));
     }
 
